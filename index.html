@@ -43,15 +43,26 @@
       align-items: center;
     }
 
-    .scan-btn {
+    .button-group {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .scan-btn, .stop-btn, .copy-btn {
       background-color: #008000;
       color: white;
-      padding: 1rem 2rem;
+      padding: 0.7rem 1.5rem;
       border: none;
       border-radius: 6px;
-      font-size: 1.1rem;
+      font-size: 1rem;
       cursor: pointer;
-      margin-bottom: 1rem;
+    }
+
+    .stop-btn {
+      background-color: #b30000;
     }
 
     #reader {
@@ -79,9 +90,6 @@
 
     .copy-btn {
       margin-top: 0.5rem;
-      padding: 0.5rem 1rem;
-      font-size: 1rem;
-      cursor: pointer;
     }
   </style>
 </head>
@@ -90,7 +98,10 @@
 <div class="container">
   <div class="header">Gear Scanning Tool</div>
   <div class="body">
-    <button id="start-scan" class="scan-btn">Start Scan</button>
+    <div class="button-group">
+      <button id="start-scan" class="scan-btn">Start Scan</button>
+      <button id="stop-scan" class="stop-btn">Stop Scan</button>
+    </div>
     <div id="reader"></div>
     <textarea id="result" placeholder="Scanned codes will appear here..."></textarea>
     <button class="copy-btn" id="copy-btn">Copy Code List</button>
@@ -99,6 +110,7 @@
 
 <script>
   const startBtn = document.getElementById("start-scan");
+  const stopBtn = document.getElementById("stop-scan");
   const resultArea = document.getElementById("result");
   const copyBtn = document.getElementById("copy-btn");
 
@@ -115,7 +127,6 @@
 
   const startQuagga = () => {
     if (isScanning) return;
-
     isScanning = true;
 
     Quagga.init({
@@ -149,15 +160,23 @@
       const result = data.codeResult;
       const confidence = result.decodedCodes.reduce((acc, code) => acc + (code.error || 0), 0);
 
-      if (result.code && confidence < 0.1) { // lower = better
+      if (result.code && confidence < 0.1) {
         appendCode(result.code);
+        // Comment this out if you want continuous scanning
         Quagga.stop();
         isScanning = false;
       }
     });
   };
 
+  const stopQuagga = () => {
+    if (!isScanning) return;
+    Quagga.stop();
+    isScanning = false;
+  };
+
   startBtn.addEventListener("click", startQuagga);
+  stopBtn.addEventListener("click", stopQuagga);
 
   copyBtn.addEventListener("click", () => {
     navigator.clipboard.writeText(resultArea.value)
