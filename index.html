@@ -92,41 +92,58 @@
 </div>
 
 <script>
-  const scanned = new Set();
   const resultArea = document.getElementById("result");
   const scanBtn = document.getElementById("start-scan");
   const copyBtn = document.getElementById("copy-btn");
 
   const scanner = new Html5Qrcode("reader");
   const config = { fps: 10, qrbox: 250 };
-
-  function updateResultField() {
-    resultArea.value = Array.from(scanned).join(", ");
-  }
+  let isScanning = false;
 
   scanBtn.addEventListener("click", () => {
-    scanner.start(
-            { facingMode: "environment" },
-            config,
-            (decodedText) => {
-              if (!scanned.has(decodedText)) {
-                scanned.add(decodedText);
-                updateResultField();
-              }
-              scanner.stop(); // stop after 1 scan, restart manually
-            },
-            (err) => {
-              // console.warn("Error scanning: ", err);
+    if (isScanning) return;
+
+    Html5Qrcode.getCameras().then(cameras => {
+      if (cameras && cameras.length) {
+        const cameraId = cameras[0].id;
+        isScanning = true;
+
+        scanner.start(
+          { facingMode: "environment" },
+          config,
+          (decodedText) => {
+            // Only add if it’s not already in the field
+            const currentText = resultArea.value.trim();
+            const codes = currentText ? currentText.split(',').map(c => c.trim()) : [];
+
+            if (!codes.includes(decodedText)) {
+              resultArea.value += (currentText ? ", " : "") + decodedText;
             }
-    ).catch((err) => {
-      alert("Unable to start camera: " + err);
+
+            scanner.stop().then(() => {
+              isScanning = false;
+            }).catch(err => {
+              console.warn("Error stopping scanner", err);
+              isScanning = false;
+            });
+          },
+          (err) => {
+            // Optional: handle scanning errors
+          }
+        ).catch((err) => {
+          alert("Unable to start camera: " + err);
+          isScanning = false;
+        });
+      } else {
+        alert("No cameras found on this device.");
+      }
     });
   });
 
   copyBtn.addEventListener("click", () => {
     navigator.clipboard.writeText(resultArea.value)
-            .then(() => alert("Copied to clipboard!"))
-            .catch(err => alert("Copy failed: " + err));
+      .then(() => alert("Copied to clipboard!"))
+      .catch(err => alert("Copy failed: " + err));
   });
 </script>
 
