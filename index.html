@@ -51,7 +51,7 @@
       justify-content: center;
     }
 
-    .scan-btn, .stop-btn, .copy-btn {
+    button {
       background-color: #008000;
       color: white;
       padding: 0.7rem 1.5rem;
@@ -61,7 +61,7 @@
       cursor: pointer;
     }
 
-    .stop-btn {
+    .clear-btn {
       background-color: #b30000;
     }
 
@@ -71,6 +71,7 @@
       position: relative;
       overflow: hidden;
       border-radius: 8px;
+      margin-bottom: 1rem;
     }
 
     #reader video {
@@ -87,10 +88,6 @@
       padding: 0.5rem;
       resize: none;
     }
-
-    .copy-btn {
-      margin-top: 0.5rem;
-    }
   </style>
 </head>
 <body>
@@ -99,20 +96,18 @@
   <div class="header">Gear Scanning Tool</div>
   <div class="body">
     <div class="button-group">
-      <button id="start-scan" class="scan-btn">Start Scan</button>
-      <button id="stop-scan" class="stop-btn">Stop Scan</button>
+      <button id="toggle-scan">Start Scan</button>
+      <button id="clear-btn" class="clear-btn">Clear All</button>
     </div>
     <div id="reader"></div>
     <textarea id="result" placeholder="Scanned codes will appear here..."></textarea>
-    <button class="copy-btn" id="copy-btn">Copy Code List</button>
   </div>
 </div>
 
 <script>
-  const startBtn = document.getElementById("start-scan");
-  const stopBtn = document.getElementById("stop-scan");
+  const toggleBtn = document.getElementById("toggle-scan");
+  const clearBtn = document.getElementById("clear-btn");
   const resultArea = document.getElementById("result");
-  const copyBtn = document.getElementById("copy-btn");
 
   let isScanning = false;
 
@@ -125,10 +120,7 @@
     }
   };
 
-  const startQuagga = () => {
-    if (isScanning) return;
-    isScanning = true;
-
+  const startScanner = () => {
     Quagga.init({
       inputStream: {
         type: "LiveStream",
@@ -142,46 +134,53 @@
       },
       locate: true,
       locator: {
-        patchSize: "medium",
-        halfSample: true
+        patchSize: "large",       // More forgiving detection
+        halfSample: false
       },
       numOfWorkers: navigator.hardwareConcurrency || 2,
-      frequency: 10
+      frequency: 10,
+      debug: false
     }, (err) => {
       if (err) {
         alert("Error initializing scanner: " + err);
         isScanning = false;
+        toggleBtn.textContent = "Start Scan";
         return;
       }
       Quagga.start();
     });
 
-    Quagga.onDetected((data) => {
-      const result = data.codeResult;
-      const confidence = result.decodedCodes.reduce((acc, code) => acc + (code.error || 0), 0);
-
-      if (result.code && confidence < 0.1) {
-        appendCode(result.code);
-        // Comment this out if you want continuous scanning
-        Quagga.stop();
-        isScanning = false;
-      }
-    });
+    Quagga.onDetected(onDetectedHandler);
   };
 
-  const stopQuagga = () => {
-    if (!isScanning) return;
+  const stopScanner = () => {
     Quagga.stop();
-    isScanning = false;
+    Quagga.offDetected(onDetectedHandler);
   };
 
-  startBtn.addEventListener("click", startQuagga);
-  stopBtn.addEventListener("click", stopQuagga);
+  const onDetectedHandler = (data) => {
+    const result = data.codeResult;
+    const confidence = result.decodedCodes.reduce((acc, code) => acc + (code.error || 0), 0);
 
-  copyBtn.addEventListener("click", () => {
-    navigator.clipboard.writeText(resultArea.value)
-      .then(() => alert("Copied to clipboard!"))
-      .catch(err => alert("Copy failed: " + err));
+    if (result.code && confidence < 0.2) {
+      appendCode(result.code);
+    }
+  };
+
+  toggleBtn.addEventListener("click", () => {
+    if (!isScanning) {
+      startScanner();
+      isScanning = true;
+      toggleBtn.textContent = "Stop Scan";
+    } else {
+      stopScanner();
+      isScanning = false;
+      toggleBtn.textContent = "Start Scan";
+    }
+  });
+
+  clearBtn.addEventListener("click", () => {
+    resultArea.value = "";
   });
 </script>
 
