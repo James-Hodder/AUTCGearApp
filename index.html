@@ -56,9 +56,17 @@
 
     #reader {
       width: 100%;
-      min-height: 200px;
-      background: black;
-      margin-bottom: 1rem;
+      aspect-ratio: 4 / 3;
+      position: relative;
+      overflow: hidden;
+      border-radius: 8px;
+    }
+
+    #reader video {
+      width: 100% !important;
+      height: auto !important;
+      border-radius: 8px;
+      object-fit: cover;
     }
 
     #result {
@@ -116,12 +124,18 @@
         target: document.querySelector("#reader"),
         constraints: {
           facingMode: "environment"
-        },
+        }
       },
       decoder: {
         readers: ["code_128_reader"]
       },
-      locate: true
+      locate: true,
+      locator: {
+        patchSize: "medium",
+        halfSample: true
+      },
+      numOfWorkers: navigator.hardwareConcurrency || 2,
+      frequency: 10
     }, (err) => {
       if (err) {
         alert("Error initializing scanner: " + err);
@@ -132,11 +146,14 @@
     });
 
     Quagga.onDetected((data) => {
-      const code = data.codeResult.code;
-      appendCode(code);
+      const result = data.codeResult;
+      const confidence = result.decodedCodes.reduce((acc, code) => acc + (code.error || 0), 0);
 
-      Quagga.stop();
-      isScanning = false;
+      if (result.code && confidence < 0.1) { // lower = better
+        appendCode(result.code);
+        Quagga.stop();
+        isScanning = false;
+      }
     });
   };
 
@@ -144,8 +161,8 @@
 
   copyBtn.addEventListener("click", () => {
     navigator.clipboard.writeText(resultArea.value)
-            .then(() => alert("Copied to clipboard!"))
-            .catch(err => alert("Copy failed: " + err));
+      .then(() => alert("Copied to clipboard!"))
+      .catch(err => alert("Copy failed: " + err));
   });
 </script>
 
