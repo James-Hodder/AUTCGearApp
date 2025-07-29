@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gear Scanning Tool</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #1e1e1e;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 400px;
+      background-color: #a8b0a8;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    }
+
+    .header {
+      background-color: #2f5b39;
+      padding: 1rem;
+      text-align: center;
+      color: white;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .body {
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .scan-btn {
+      background-color: #008000;
+      color: white;
+      padding: 1rem 2rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      margin-bottom: 1rem;
+    }
+
+    #reader {
+      background-color: #d3d3d3;
+      width: 100%;
+      min-height: 200px;
+      margin-bottom: 1rem;
+    }
+
+    #result {
+      width: 100%;
+      height: 80px;
+      font-size: 1rem;
+      padding: 0.5rem;
+      resize: none;
+    }
+
+    .copy-btn {
+      margin-top: 0.5rem;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">Gear scanning tool</div>
+  <div class="body">
+    <button id="start-scan" class="scan-btn">Scan QR code</button>
+    <div id="reader">QR/barcode scanner goes here</div>
+    <textarea id="result" placeholder="Scanned codes will appear here..." readonly></textarea>
+    <button class="copy-btn" id="copy-btn">Copy Code List</button>
+  </div>
+</div>
+
+<script>
+  const scanned = new Set();
+  const resultArea = document.getElementById("result");
+  const scanBtn = document.getElementById("start-scan");
+  const copyBtn = document.getElementById("copy-btn");
+
+  const scanner = new Html5Qrcode("reader");
+  const config = { fps: 10, qrbox: 250 };
+
+  function updateResultField() {
+    resultArea.value = Array.from(scanned).join(", ");
+  }
+
+  scanBtn.addEventListener("click", () => {
+    scanner.start(
+            { facingMode: "environment" },
+            config,
+            (decodedText) => {
+              if (!scanned.has(decodedText)) {
+                scanned.add(decodedText);
+                updateResultField();
+              }
+              scanner.stop(); // stop after 1 scan, restart manually
+            },
+            (err) => {
+              // console.warn("Error scanning: ", err);
+            }
+    ).catch((err) => {
+      alert("Unable to start camera: " + err);
+    });
+  });
+
+  copyBtn.addEventListener("click", () => {
+    navigator.clipboard.writeText(resultArea.value)
+            .then(() => alert("Copied to clipboard!"))
+            .catch(err => alert("Copy failed: " + err));
+  });
+</script>
+
+</body>
+</html>
