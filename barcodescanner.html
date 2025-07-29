@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gear Scanning Tool</title>
+  <script src="https://unpkg.com/@ericblade/quagga2@1.2.6/dist/quagga.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #1e1e1e;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 400px;
+      background-color: #a8b0a8;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    }
+
+    .header {
+      background-color: #2f5b39;
+      padding: 1rem;
+      text-align: center;
+      color: white;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .body {
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .scan-btn {
+      background-color: #008000;
+      color: white;
+      padding: 1rem 2rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      margin-bottom: 1rem;
+    }
+
+    #reader {
+      width: 100%;
+      min-height: 200px;
+      background: black;
+      margin-bottom: 1rem;
+    }
+
+    #result {
+      width: 100%;
+      height: 80px;
+      font-size: 1rem;
+      padding: 0.5rem;
+      resize: none;
+    }
+
+    .copy-btn {
+      margin-top: 0.5rem;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">Gear Scanning Tool</div>
+  <div class="body">
+    <button id="start-scan" class="scan-btn">Start Scan</button>
+    <div id="reader"></div>
+    <textarea id="result" placeholder="Scanned codes will appear here..."></textarea>
+    <button class="copy-btn" id="copy-btn">Copy Code List</button>
+  </div>
+</div>
+
+<script>
+  const startBtn = document.getElementById("start-scan");
+  const resultArea = document.getElementById("result");
+  const copyBtn = document.getElementById("copy-btn");
+
+  let isScanning = false;
+
+  const appendCode = (code) => {
+    const current = resultArea.value.trim();
+    const codes = current ? current.split(',').map(c => c.trim()) : [];
+
+    if (!codes.includes(code)) {
+      resultArea.value += (current ? ", " : "") + code;
+    }
+  };
+
+  const startQuagga = () => {
+    if (isScanning) return;
+
+    isScanning = true;
+
+    Quagga.init({
+      inputStream: {
+        type: "LiveStream",
+        target: document.querySelector("#reader"),
+        constraints: {
+          facingMode: "environment"
+        },
+      },
+      decoder: {
+        readers: ["code_128_reader"]
+      },
+      locate: true
+    }, (err) => {
+      if (err) {
+        alert("Error initializing scanner: " + err);
+        isScanning = false;
+        return;
+      }
+      Quagga.start();
+    });
+
+    Quagga.onDetected((data) => {
+      const code = data.codeResult.code;
+      appendCode(code);
+
+      Quagga.stop();
+      isScanning = false;
+    });
+  };
+
+  startBtn.addEventListener("click", startQuagga);
+
+  copyBtn.addEventListener("click", () => {
+    navigator.clipboard.writeText(resultArea.value)
+            .then(() => alert("Copied to clipboard!"))
+            .catch(err => alert("Copy failed: " + err));
+  });
+</script>
+
+</body>
+</html>
