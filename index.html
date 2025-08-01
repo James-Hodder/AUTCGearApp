@@ -88,6 +88,12 @@
       padding: 0.5rem;
       resize: none;
     }
+     .copy-btn {
+      margin-top: 0.5rem;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -101,6 +107,7 @@
     </div>
     <div id="reader"></div>
     <textarea id="result" placeholder="Scanned codes will appear here..."></textarea>
+    <button class="copy-btn" id="copy-btn">Copy Code List</button>
   </div>
 </div>
 
@@ -108,6 +115,7 @@
   const toggleBtn = document.getElementById("toggle-scan");
   const clearBtn = document.getElementById("clear-btn");
   const resultArea = document.getElementById("result");
+   const copyBtn = document.getElementById("copy-btn");
 
   let isScanning = false;
 
@@ -181,6 +189,12 @@
 
   clearBtn.addEventListener("click", () => {
     resultArea.value = "";
+  });
+  
+  copyBtn.addEventListener("click", () => {
+    navigator.clipboard.writeText(resultArea.value)
+            .then(() => alert("Copied to clipboard!"))
+            .catch(err => alert("Copy failed: " + err));
   });
 </script>
 
